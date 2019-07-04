@@ -7,7 +7,7 @@
       render.screenBufferID = render.screenBuffer(gl);
     }
 
-    gl.clearColor(0.8, 0.8, 0.8, 1.0);
+    gl.clearColor(0., 0., 0., 1.0);
     gl.clear(gl.DEPTH_BUFFER_BIT
       | gl.COLOR_BUFFER_BIT
       | gl.STENCIL_BUFFER_BIT);

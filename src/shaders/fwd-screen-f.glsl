@@ -13,13 +13,25 @@ uniform float time;
 #define MAX_DIST 100.
 #define SURF_DIST .01
 
+struct Pixel {
+  float d;
+  vec4 c;
+};
+
+struct Light {
+  vec3 p;
+  vec4 c;
+};
+
+///////////////////////////////////////////////////////
+// Primatives
+
 float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
   vec3 ab = b-a;
   vec3 ap = p-a;
   
   float t = dot(ab, ap) / dot(ab, ab);
   t = clamp(t, 0., 1.);
-  
   vec3 c = a + t * ab;
   
   return length(p - c) - r;
@@ -30,7 +42,6 @@ float sdCylinder(vec3 p, vec3 a, vec3 b, float r) {
   vec3 ap = p-a;
   
   float t = dot(ab, ap) / dot(ab, ab);
-  
   vec3 c = a + t * ab;
   
   float x = length(p - c) - r;
@@ -41,17 +52,55 @@ float sdCylinder(vec3 p, vec3 a, vec3 b, float r) {
   return e + i;
 }
 
-float sdTorus(vec3 p, vec2 r) {
+// c = center, r = radius (inner, thickness)
+float sdTorus(vec3 p, vec3 c, vec2 r) {
+  p = p - c;
   float x = length(p.xz)-r.x;
   return length(vec2(x, p.y))-r.y;
 }
 
+// s = center.xyz, radius.w
 float sdSphere(vec3 p, vec4 s) {
-  return length( p - s.xyz) - s.w;
+  return length(p - s.xyz) - s.w;
 }
 
-float dBox(vec3 p, vec3 s) {
-	return length(max(abs(p) - s, 0.));
+// c = center, s = bounding size
+float sdBox(vec3 p, vec3 c, vec3 s) {
+  p = p - c;
+  return length(max(abs(p) - s, 0.));
+}
+
+///////////////////////////////////////////////////////
+// Operators
+
+float opUnion(float d1, float d2) {
+  return min(d1, d2);
+}
+
+float opSubtraction(float d1, float d2) {
+  return max(-d1, d2);
+}
+
+float opIntersection(float d1, float d2 ) {
+  return max(d1, d2);
+}
+
+///////////////////////////////////////////////////////
+// Smooth Operators
+
+float opSmoothUnion(float d1, float d2, float k) {
+  float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0., 1.);
+  return mix(d2, d1, h) - k * h * (1. - h);
+}
+
+float opSmoothSubtraction(float d1, float d2, float k) {
+  float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0., 1.);
+  return mix(d2, -d1, h) + k * h * (1. - h);
+}
+
+float opSmoothIntersection(float d1, float d2, float k) {
+  float h = clamp(0.5 - 0.5 * (d2 - d1) / k, 0., 1.);
+  return mix(d2, d1, h) + k * h * (1. - h);
 }
 
 ///////////////////////////////////////////////////////
@@ -59,55 +108,85 @@ float dBox(vec3 p, vec3 s) {
 // GetDist is kind of like the scene. It is a collection of
 // distances that make up the image. This is how ray march can know
 // about other objects in the scene
-float GetDist(vec3 p) {
+Pixel GetDist(vec3 p) {
+  vec4 col = vec4(0.8, 0.8, 0.8, 1.);
+
   // The ground plane
   float planeDist = p.y;
   float d = planeDist;
 
   // Objects in the scene
-  float td = sdTorus(p - vec3(0., .25, 6), vec2(1.5, .4));
-  float sd = sdSphere(p, vec4(-2., 1., 9., 1.));
-  float cd = sdCapsule(p, vec3(3, .5, 6.), vec3(3., 2.5, 6.), .5); 
-  float bd = dBox(p - vec3(-3.5, 1, 6), vec3(1, 1, 1));
-  float cld = sdCylinder(p, vec3(0, .3, 3), vec3(3, .3, 5), .3);
+  //                              pos             radius  thickness
+  float td = sdTorus    (p, vec3(0., .5, 6.),     vec2(1., .5)           );
+  //                              pos                bounds
+  float bd = sdBox      (p, vec3(-3.5, 1., 6.),    vec3(.5, 1, 1)           );
+  //                                  pos   radius
+  float sd = sdSphere   (p, vec4(-3., 2., 6., 1.)                         );
+  //                        center of end 1     cetner of end 2    radius
+  float cd = sdCapsule  (p, vec3(3, .5, 6.),     vec3(3., 2.5, 6.),  .5   );
+  //                        center of end 1     cetner of end 2    radius
+  float cld = sdCylinder(p, vec3(0, .3, 3),      vec3(3, .3, 5),     .3   );
+
+  // float bd = sdBox      (p, vec4(-3.5, 1, 6, .0),    vec4(.5, 1, 1, .0, .0)  vec4(0., 1., 0., 1.) );
+  // float sd = sdSphere   (p, vec4(-2., 2., 9., 1.)    vec4(.0, .0, .0, .0)    vec4(0., 0., 1., 1.) );
+
+  // float td = sdTorus    (p, vec4(0., .5, 6, .0),     vec4(1.25, .5, .0, .0)  vec4(1., 0., 0., 1.) );
+  // float cd = sdCapsule  (p, vec4(3, .5, 6., .0),     vec4(3., 2.5, 6., .5)   vec4(1., 1., 0., 1.) ); 
+  // float cld = sdCylinder(p, vec4(0, .3, 3, .0),      vec4(3, .3, 5, .3),     vec4(1., 0., 1., 1.) );
+
+  // Combine the box and sphere
+  float myop = opSmoothUnion(sd, bd, .9);
   
   // Calc the distance to a particular object
   d = min(cd, planeDist);
-  d = min(d, td);
-  d = min(d, bd);
-  d = min(d, sd);
-  d = min(d, cld);
+  if (d >= cd) { col = vec4(1., 0., 0., 1.); }
   
-  return d;
+  d = min(d, td);
+  if (d >= td) { col = vec4(0., 1., 0., 1.); }
+  
+  // d = min(d, bd);
+  // if (d >= bd) { col = vec4(0., 0., 1., 1.); }
+
+  // d = min(d, sd);
+  // if (d >= sd) { col = vec4(1., 1., 0., 1.); }
+
+  d = min(d, myop);
+  if (d >= myop) { col = vec4(0., 0., 1., 1.); }
+
+  d = min(d, cld);
+  if (d >= cld) { col = vec4(1., 0., 1., 1.); }
+  
+  return Pixel(d, col);
 }
 
-float RayMarch(vec3 ro, vec3 rd) {
-  float dO = 0.;
+Pixel RayMarch(vec3 ro, vec3 rd) {
+  Pixel dO = Pixel(0., vec4(0.));
+
   for (int i = 0; i < MAX_STEPS; i++) {
-    vec3 p = ro + rd * dO;
-    float dS = GetDist(p);
-    dO += dS;
-    if(dO > MAX_DIST || dS < SURF_DIST) break;
+    vec3 p = ro + rd * dO.d;
+    Pixel dS = GetDist(p);
+    dO.d += dS.d;
+    dO.c = dS.c;
+    if(dO.d > MAX_DIST || dS.d < SURF_DIST) break;
   }
   return dO;
 }
 
 vec3 GetNormal(vec3 p) {
-  float d = GetDist(p);
+  Pixel px = GetDist(p);
   vec2 e = vec2(.001, 0.);
 
-  vec3 n = d - vec3(
-    GetDist(p-e.xyy),
-    GetDist(p-e.yxy),
-    GetDist(p-e.yyx));
+  vec3 n = px.d - vec3(
+    GetDist(p-e.xyy).d,
+    GetDist(p-e.yxy).d,
+    GetDist(p-e.yyx).d);
 
   return normalize(n);
 }
 
-float GetLight(vec3 p) {
-  vec3 lightPos = vec3(0., 3.5, 7.);
-  lightPos.xz += vec2(sin(time), cos(time)) * 4.;
-
+// Gets the light intensity for the given distance
+float GetLight(vec3 p, Light lt) {
+  vec3 lightPos = lt.p;
   vec3 l = normalize(lightPos - p);
   vec3 n = GetNormal(p);
 
@@ -116,8 +195,8 @@ float GetLight(vec3 p) {
   // March towards the light to see if we are in
   // shadow or get to the light. We need to move up from
   // the point a small amount to "get off the ground"
-  float d = RayMarch(p + (n*SURF_DIST*2.), l);
-  if(d < length(lightPos - p)) {
+  Pixel px = RayMarch(p + (n*SURF_DIST*2.), l);
+  if(px.d < length(lightPos - p)) {
     dif *= .1;
   }
 
@@ -127,19 +206,34 @@ float GetLight(vec3 p) {
 void main() {
   // center
   vec2 uv = (v_texcoord-.5) * resolution.xy / resolution.y;
-  vec3 col = vec3(0.);
+  vec4 col = vec4(0.);
 
   // ray origin (camera), ray direction (forward)
   vec3 ro = vec3(0., 2., -4.);
-  ro.y += sin(time);
+  // ro.y += sin(time);
   vec3 rd = normalize(vec3(uv.xy, 1.));
 
-  float d = RayMarch(ro, rd);
-  vec3 p = ro + rd * d;
+  // Get the pixel distance and color
+  Pixel px = RayMarch(ro, rd);
+  vec3 p = ro + rd * px.d;
 
-  float dif = GetLight(p);
-  col = vec3(dif) * vec3(.9, .9, .9);
-  // col = GetNormal(p);
+  // Find lights and add up those values too
+  Light l = Light(vec3(0., 4.5, 7.), vec4(.9, .5, .5, 1.));
+  l.p.xz += vec2(sin(time), cos(time)) * 3.2;
+  float dif = GetLight(p, l);
 
-  gl_FragColor = vec4(col, 1.);
+  Light l2 = Light(vec3(2., 1.5, 2.), vec4(.2, .2, .2, 1.));
+  float dif2 = GetLight(p, l2);
+
+  Light l3 = Light(vec3(-3., .5, 10.), vec4(.1, .8, .1, .5));
+  float dif3 = GetLight(p, l3);
+
+  col = px.c * (
+    (l.c * dif)
+    + (l2.c * dif2)
+    + (l3.c * dif3)
+  );
+  // col = vec4(GetNormal(p), 1.);
+
+  gl_FragColor = col;
 }
