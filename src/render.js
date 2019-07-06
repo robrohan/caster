@@ -2,7 +2,8 @@
   const render = {};
   render.screenBufferID = null;
 
-  render.render = function(gl, program) {
+  render.render = function(ctx, program) {
+    const gl = ctx.gl;
     if (render.screenBufferID == null) {
       render.screenBufferID = render.screenBuffer(gl);
     }
@@ -11,14 +12,22 @@
     gl.clear(gl.DEPTH_BUFFER_BIT
       | gl.COLOR_BUFFER_BIT
       | gl.STENCIL_BUFFER_BIT);
-    gl.viewport(0, 0, 800, 600);
+    gl.viewport(0, 0,
+        ctx.gl.drawingBufferWidth, ctx.gl.drawingBufferHeight);
 
     gl.useProgram(program);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, render.screenBufferID);
 
     const resolutionID = gl.getUniformLocation(program, 'resolution');
-    gl.uniform2fv(resolutionID, [800.0, 600.0]);
+    gl.uniform2fv(resolutionID,
+        [ctx.canvas.clientWidth, ctx.canvas.clientHeight]);
+
+    const rayOriginID = gl.getUniformLocation(program, 'ro');
+    gl.uniform3fv(rayOriginID, [0., 2, -4.]);
+
+    const rayDirectionID = gl.getUniformLocation(program, 'rd');
+    gl.uniform3fv(rayDirectionID, [0., 0., 0.]);
 
     const timeID = gl.getUniformLocation(program, 'time');
     gl.uniform1f(timeID, performance.now() * .002);
