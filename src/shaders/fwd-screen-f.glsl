@@ -107,8 +107,8 @@ float opSmoothIntersection(float d1, float d2, float k) {
   return mix(d2, d1, h) + k * h * (1. - h);
 }
 
-////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////
 Pixel scene(float d, vec3 p, vec4 col) {
   float tmp0 = d;
   float tmp1 = d;
@@ -159,8 +159,48 @@ Pixel scene(float d, vec3 p, vec4 col) {
 
   return Pixel(d, col);
 }
+// ////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+// Graph Example
+// Pixel scene(float d, vec3 p, vec4 col) {
+//   float tmp0 = d;
+//   float tmp1 = d;
+
+//   // ###########
+//   tmp0 = sdGround(p, vec3(0., 0., 0.), vec4(0., 0., 0., 0.));
+//   d = min(d, tmp0);
+//   if (d >= tmp0) col = vec4(.4, .4, .4, 1.);
+
+//   tmp0 = sdBox(p, vec3(-4., 1.5, 6.), vec4(.5, 1.5, .5, 0.));
+//   tmp1 = sdBox(p, vec3(-3, 2.5, 6.), vec4(.5, 2.5, .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(-2., 2., 6.), vec4(.5, 2., .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(-1., .1, 6.), vec4(.5, .1, .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(0., 1., 6.), vec4(.5, 1., .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(1., 1.25, 6.), vec4(.5, 1.25, .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(2., 1., 6.), vec4(.5, 1., .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(3., 2., 6.), vec4(.5, 2., .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+//   tmp1 = sdBox(p, vec3(4., 2.5, 6.), vec4(.5, 2.5, .5, 0.));
+//   tmp0 = opSmoothUnion(tmp0, tmp1, .02);
+  
+//   d = min(d, tmp0);
+//   if (d >= tmp0) col = vec4(.8, 1., .8, 1.);
+//   // ###########
+
+//   return Pixel(d, col);
+// }
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
 
 // GetDist is kind of like the scene. It is a collection of
 // distances that make up the image. This is how ray march can know
@@ -225,6 +265,7 @@ vec4 luminance(Pixel px, vec3 p, vec3 n) {
   Light l = Light(vec3(0., 3.5, 7.), vec4(.5, .5, .2, 1.));
   l.p.xz += vec2(sin(time), cos(time)) * 3.2; // ignore
   l.p.y += cos(time) * sin(time);             // ignore
+  // Light l = Light(vec3(0., 3.5, 2.), vec4(1.));
   float dif = GetLight(p, n, l);
 
   Light l2 = Light(vec3(0., 45., 6.), vec4(1.));
