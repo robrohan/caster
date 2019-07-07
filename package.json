@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "npx parcel build src/caster.js",
-    "start": "npx parcel serve index.html",
+    "start": "npx parcel serve src/index.html",
     "test": ""
   },
   "devDependencies": {

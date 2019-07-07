@@ -4,32 +4,45 @@ Playing around with [ray marching](http://jamie-wong.com/2016/07/15/ray-marching
 
 ![basic](img/screenshot.png)
 
+## Running
+
+    npm i
+    make start
+
+or
+    npm i
+    npm run start
+
 ## Format
 
-    # 1 = box
-    # 2 = sphere
-    # 3 = capsule
-    # 4 = cylinder
-    # 5 = torus
-    # 6 = ground
-    # 99 = light
-    # 100 = min (draw, noop, etc)
-    # 101 = opUnion
-    # 102 = opSubtraction
-    # 103 = opIntersection
-    # 104 = opSmoothUnion
-    # 105 = opSmoothSubtraction
-    # 106 = opSmoothIntersection
-    #t,       p3              x4      
-    [1,   -3.5, 1, 6.,    .5, 1., 1, .0]
-    #m        op              c4
-    [100, 0., 0., 0.,    0., 1., 0., 1.]
-    
-    #t,       p3              x4      
-    [3,   3., .5, 6.,     .5, 1, 1, .0 ]
-    [2,   3., 2., 6.,     .5, 1, 1, .0 ]
-    #m      op               c4
-    [104, .3, 0., 0.,    0., 1., 0., 1.]
-    
-    #l       p3              c4
-    [99, 0., 3.5, 7.,    .5, .5, .2, 1.]
+Example:
+
+    caster([
+        scene([
+            draw(
+                sphere([3.5, 1, 10], [1]),
+                [0, 1, 1, 1]
+            ), 
+            draw(
+                sphere([-3.5, 1, 10], [1]),
+                [1, .5, 0, 1]
+            ),
+            repeat([4, 0, 4]),
+            draw(
+                join([
+                    cube([-.2, -1, 0], [.2, .2, .2]),
+                    sphere([0, -1, 0], [.2]),
+                    smoothUnion([.4]),
+                    cube([.2, -1, 0], [.2, .2, .2]),
+                    smoothUnion([.4]),
+                ]),
+            [1, .5, 1, 1] 
+            ),
+            single(),
+            draw(ground([0, -2, 0])),
+        ]),
+        lights([
+            light([0, 20, 0], [.5, .5, .5, 1]),
+            light([0, 2.5, 0], [1, 1, 1, 1])
+        ]),
+    ]);
