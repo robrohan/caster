@@ -24,16 +24,29 @@ function compileScene(ctx) {
   //   () => tp.scene([
   //     tp.draw(tp.sphere([3, 1, 6], [1]), [0, 1, 1, 1]),
   //     tp.draw(tp.sphere([-3, 1, 6], [1.3]), [1, .5, 0, 1]),
-  //     tp.join(
-  //         tp.sphere([.5, 1, 6], [1]),
-  //         tp.sphere([-.5, 1, 6], [1]),
-  //         tp.smoothUnion([.02]),
-  //         [0, 1, 1, 1]
+  //     // () => {
+  //     //   let b = '';
+  //     //   for (let z = 1; z < 10; z++) {
+  //     //     for (let x = -4; x <= 4; x++) {
+  //     //       const f = tp.draw(tp.sphere([x, 3, z], [.1]));
+  //     //       b += f();
+  //     //     }
+  //     //   }
+  //     //   console.log(b);
+  //     //   return b;
+  //     // },
+  //     tp.draw(
+  //         tp.join([
+  //           tp.sphere([.5, 1, 6], [1]),
+  //           tp.sphere([-.5, 1, 6], [1]),
+  //           tp.smoothUnion([.2]),
+  //         ]),
   //     ),
+  //     tp.draw(tp.ground([0, -1, 0])),
   //   ]),
   //   () => tp.lights([
-  //     tp.light([0, 0, 0], [.5, .5, .2, 1]),
-  //     tp.light([0, 45, 6], [1, 1, 1, 1]),
+  //     tp.light([0, 2, 2], [1, 1, 1, 1]),
+  //     tp.light([0, 35, -4], [1, 1, 1, 1]),
   //   ]),
   // ];
   // const sceneLights = tp.run(t);

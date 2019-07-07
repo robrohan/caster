@@ -24,10 +24,10 @@
         [ctx.canvas.clientWidth, ctx.canvas.clientHeight]);
 
     const rayOriginID = gl.getUniformLocation(program, 'ro');
-    gl.uniform3fv(rayOriginID, [0., 2, -4.]);
+    gl.uniform3fv(rayOriginID, [0., 0., 0.]);
 
     const rayDirectionID = gl.getUniformLocation(program, 'rd');
-    gl.uniform3fv(rayDirectionID, [0., 0., 0.]);
+    gl.uniform3fv(rayDirectionID, [0., 0., 1.]);
 
     const timeID = gl.getUniformLocation(program, 'time');
     gl.uniform1f(timeID, performance.now() * .002);

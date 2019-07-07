@@ -13,7 +13,7 @@ uniform vec3 ro;
 uniform vec3 rd;
 
 #define MAX_STEPS 100
-#define MAX_DIST 100.
+#define MAX_DIST 200.
 #define SURF_DIST .01
 
 struct Pixel {
@@ -76,7 +76,7 @@ float sdBox(vec3 p, vec3 c, vec4 s) {
 
 // c = only Y matters
 float sdGround(vec3 p, vec3 c, vec4 s) {
-  return p.y;
+  return p.y - c.y;
 }
 
 ///////////////////////////////////////////////////////
@@ -91,6 +91,11 @@ float opSubtraction(float d1, float d2) {
 
 float opIntersection(float d1, float d2 ) {
   return max(d1, d2);
+}
+
+vec3 opRep(vec3 p, vec3 c) {
+  vec3 q = mod(p, c) - (0.5 * c);
+  return q;
 }
 
 ///////////////////////////////////////////////////////
@@ -112,9 +117,10 @@ float opSmoothIntersection(float d1, float d2, float k) {
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
-Pixel scene(float d, vec3 p, vec4 col) {
+Pixel scene(float d, vec3 ctx, vec4 col) {
   float tmp0 = d;
   float tmp1 = d;
+  vec3 p = ctx;
   // ##caster_scene##
   return Pixel(d, col);
 }
@@ -164,6 +170,9 @@ float GetLight(vec3 p, vec3 n, Light lt) {
   // shadow or get to the light. We need to move up from
   // the point a small amount to "get off the ground"
   Pixel px = RayMarch(p + (n*SURF_DIST*2.), l);
+  if(px.d < .001) return 0.;
+
+  float k = .03;
   if(px.d < length(lightPos - p)) {
     dif *= .5;
   }
@@ -186,7 +195,7 @@ void main() {
   vec4 col = vec4(0.);
 
   // "Camera"
-  vec3 rdir = normalize( vec3(uv.xy, 1.) + rd);
+  vec3 rdir = normalize( vec3(uv.xy, 0.) + rd);
 
   // Get the pixel distance and color
   Pixel px = RayMarch(ro, rdir);
@@ -194,6 +203,10 @@ void main() {
   vec3 n = GetNormal(p);
 
   col = luminance(px, p, n);
+
+  // fog
+  float t = px.d;
+  col *= exp(-0.0000005 * t * t * t);
 
   gl_FragColor = col;
 }

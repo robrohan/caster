@@ -12,10 +12,8 @@
     return function() {
       buffer = '';
       for (let x = 0; x < st.length; x++) {
-        // console.log('a', st[x]);
         buffer += st[x]();
       }
-      // console.log(buffer);
       return buffer;
     };
   }
@@ -28,7 +26,7 @@
 
   function cube(pos, bounding) {
     return function(register) {
-      return `${register} = sdBox(p, vec3(${pos[0]}, ${pos[1]}, ${pos[2]}), vec4(${bounding[0]}, ${bounding[1]}, ${bounding[2]}, ${bounding[3]}));`;
+      return `${register} = sdBox(p, vec3(${pos[0]}, ${pos[1]}, ${pos[2]}), vec4(${bounding[0]}, ${bounding[1]}, ${bounding[2]}, 0));`;
     };
   };
 
@@ -58,7 +56,19 @@
 
   // ////////////////////////////////////////////////
 
-  function draw(func, color, register = 'tmp0') {
+  function single() {
+    return function() {
+      return `p = ctx;`;
+    };
+  }
+
+  function repeat(blocks = [1, 1, 1]) {
+    return function() {
+      return `p = opRep(ctx, vec3(${blocks[0]}, ${blocks[1]}, ${blocks[2]}));`;
+    };
+  }
+
+  function draw(func, color = [.5, .5, .5, 1], register = 'tmp0') {
     return function() {
       let b = '';
       const obj = func(register);
@@ -69,33 +79,70 @@
     };
   };
 
-  function join(o1, o2, func, color) {
-    return function() {
+  function join(funcs) {
+    return function(r) {
       let b = '';
-      const obj1 = o1('tmp0');
-      const obj2 = o2('tmp1');
+      const fLen = funcs.length;
+      if (fLen % 2 === 0) {
+        throw new Error('Join can not have an even number of statements');
+      }
 
-      b += obj1;
-      b += obj2;
-      b += func();
-      b += flush(color);
+      b += funcs[0](r);
+      for (let x = 1; x < fLen; x++) {
+        b += funcs[x](x % 2 == 0 ? r : 'tmp1');
+      }
+
       return b;
     };
   }
 
   // ////////////////////////////////////////////////
 
-  function smoothUnion(param) {
+  function union(r1 = 'tmp0', r2 = 'tmp1') {
     return function() {
-      return `tmp0 = opSmoothUnion(tmp0, tmp1, ${param[0]});`;
+      return `${r1} = opUnion(${r1}, ${r2});`;
+    };
+  }
+
+  function subtract(r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opSubtraction(${r1}, ${r2});`;
+    };
+  }
+
+  function intersect(r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opIntersection(${r1}, ${r2});`;
+    };
+  }
+
+  // ////////////////////////////////////////////////
+
+  function smoothUnion(param, r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opSmoothUnion(${r1}, ${r2}, ${param[0]});`;
+    };
+  }
+
+  function smoothSubtract(param, r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opSmoothSubtraction(${r1}, ${r2}, ${param[0]});`;
+    };
+  }
+
+  function smoothIntersect(param, r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opSmoothIntersection(${r1}, ${r2}, ${param[0]});`;
     };
   }
 
   // ////////////////////////////////////////////////
 
   function flush(color, register = 'tmp0') {
-    return `d = min(d, ${register});
-    if (d >= ${register}) col = vec4(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]});`;
+    return `
+d = min(d, ${register});
+if (d >= ${register}) col = vec4(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]});
+`;
   }
 
   // ////////////////////////////////////////////////
@@ -103,11 +150,13 @@
   function lights(lights) {
     return function() {
       lightBuffer = '';
-      for (let x = 0; x < lights.length; x++) {
-        lightBuffer += lights[x]('l'+x);
-        lightBuffer += `float dif${x} = GetLight(p, n, l${x});`;
+      if (lights.length) {
+        for (let x = 0; x < lights.length; x++) {
+          lightBuffer += lights[x]('l'+x);
+          lightBuffer += `float dif${x} = GetLight(p, n, l${x});`;
+        }
+        lightBuffer = flushLights(lights.length, lightBuffer);
       }
-      lightBuffer = flushLights(lights.length, lightBuffer);
       return lightBuffer;
     };
   }
@@ -131,7 +180,9 @@
   // //////////////////////////////////
 
   tp.run = function(pg) {
-    return [pg[0](), pg[1]()];
+    const scene = pg[0]();
+    const lights = pg[1]();
+    return [scene, lights];
   };
 
   tp.parse = function(pgr) {
@@ -158,5 +209,11 @@
   exports.lights = lights;
   exports.light = light;
 
+  exports.union = union;
+  exports.subtract = subtract;
+  exports.intersect = intersect;
+
   exports.smoothUnion = smoothUnion;
+  exports.smoothSubtract = smoothSubtract;
+  exports.smoothIntersect = smoothIntersect;
 })(exports);
