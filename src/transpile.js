@@ -98,6 +98,12 @@
 
   // ////////////////////////////////////////////////
 
+  function combine(r1 = 'tmp0', r2 = 'tmp1') {
+    return function() {
+      return `${r1} = opCombine(${r1}, ${r2});`;
+    };
+  }
+
   function union(r1 = 'tmp0', r2 = 'tmp1') {
     return function() {
       return `${r1} = opUnion(${r1}, ${r2});`;
@@ -209,6 +215,7 @@ if (d >= ${register}) col = vec4(${color[0]}, ${color[1]}, ${color[2]}, ${color[
   exports.lights = lights;
   exports.light = light;
 
+  exports.combine = combine;
   exports.union = union;
   exports.subtract = subtract;
   exports.intersect = intersect;

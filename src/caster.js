@@ -17,39 +17,52 @@ function resize(ctx) {
 }
 
 function compileScene(ctx) {
-  const s = document.querySelector('.scene').value;
-  const sceneLights = tp.transpile(s);
+  // const s = document.querySelector('.scene').value;
+  // const sceneLights = tp.transpile(s);
 
-  // const t = [
-  //   () => tp.scene([
-  //     tp.draw(tp.sphere([3, 1, 6], [1]), [0, 1, 1, 1]),
-  //     tp.draw(tp.sphere([-3, 1, 6], [1.3]), [1, .5, 0, 1]),
-  //     // () => {
-  //     //   let b = '';
-  //     //   for (let z = 1; z < 10; z++) {
-  //     //     for (let x = -4; x <= 4; x++) {
-  //     //       const f = tp.draw(tp.sphere([x, 3, z], [.1]));
-  //     //       b += f();
-  //     //     }
-  //     //   }
-  //     //   console.log(b);
-  //     //   return b;
-  //     // },
-  //     tp.draw(
-  //         tp.join([
-  //           tp.sphere([.5, 1, 6], [1]),
-  //           tp.sphere([-.5, 1, 6], [1]),
-  //           tp.smoothUnion([.2]),
-  //         ]),
-  //     ),
-  //     tp.draw(tp.ground([0, -1, 0])),
-  //   ]),
-  //   () => tp.lights([
-  //     tp.light([0, 2, 2], [1, 1, 1, 1]),
-  //     tp.light([0, 35, -4], [1, 1, 1, 1]),
-  //   ]),
-  // ];
-  // const sceneLights = tp.run(t);
+  const t = [
+    () => tp.scene([
+      // tp.draw(tp.sphere([3, 1, 6], [1]), [0, 1, 1, 1]),
+      // tp.draw(tp.sphere([-3, 1, 6], [1.3]), [1, .5, 0, 1]),
+      () => {
+        let buf = '';
+        const cluster = [];
+
+        cluster.push( tp.sphere([0, Math.random() * 2, 0], [.1]) );
+        for (let z = 10; z < 20; z++) {
+          for (let x = -4; x <= 4; x++) {
+            cluster.push( tp.sphere([x, Math.random() * 2, z], [.1]) );
+            cluster.push( tp.combine() );
+          }
+        }
+
+        // cluster.push( tp.sphere([0, Math.random() * 2, 4], [.1]) );
+        // cluster.push( tp.sphere([0, Math.random() * 2, 4], [.1]) );
+        // cluster.push( tp.union() );
+
+        // /////////////////////////////////
+        const o = tp.join(cluster);
+        // console.log(o('tmp0'));
+        buf += tp.draw( o )();
+        // console.log(buf);
+        // /////////////////////////////////
+        return buf;
+      },
+      // tp.draw(
+      //     tp.join([
+      //       tp.sphere([.5, 1, 6], [1]),
+      //       tp.sphere([-.5, 1, 6], [1]),
+      //       tp.smoothUnion([.2]),
+      //     ]),
+      // ),
+      // tp.draw(tp.ground([0, -2, 0])),
+    ]),
+    () => tp.lights([
+      tp.light([0, 0, 0], [1, 1, 1, 1]),
+      // tp.light([0, 35, -4], [1, 1, 1, 1]),
+    ]),
+  ];
+  const sceneLights = tp.run(t);
 
   let frag = f.toString().replace('// ##caster_scene##', sceneLights[0]);
   frag = frag.toString().replace('// ##caster_light##', sceneLights[1]);
